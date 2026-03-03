@@ -3,8 +3,14 @@ package com.login.authservice.service;
 import com.login.authservice.entity.User;
 import com.login.authservice.repository.UserRepository;
 import com.login.authservice.security.JwtUtil;
+import com.login.authservice.controller.AuthRequest;
+import com.login.authservice.dto.OtpRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
 import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -20,6 +26,9 @@ public class AuthService {
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     // Password validation regex
     private static final String PASSWORD_REGEX = 
@@ -102,8 +111,8 @@ public class AuthService {
             return response;
         }
 
-        // Verify password (In production, use BCrypt)
-        if (!user.getPassword().equals(password)) {
+        // Verify password using encoder
+        if (!passwordEncoder.matches(password, user.getPassword())) {
             response.put("success", false);
             response.put("message", "Invalid credentials");
             logger.warn("Failed login attempt for email: {}", email);
@@ -124,5 +133,79 @@ public class AuthService {
         }
 
         return response;
+    }
+
+    /**
+     * Process login with browser tracking and optional OTP requirement
+     */
+    public ResponseEntity<?> processLogin(
+            AuthRequest request,
+            String userAgent) {
+
+        User user =
+                userRepository.findByEmail(request.getEmail())
+                        .orElseThrow(() ->
+                                new RuntimeException("User not found"));
+
+        if (!passwordEncoder.matches(
+                request.getPassword(),
+                user.getPassword())) {
+
+            throw new RuntimeException("Invalid Password");
+        }
+
+        String browserHash =
+                DigestUtils.md5DigestAsHex(
+                        userAgent.getBytes());
+
+        // First login
+        if (user.getBrowserId() == null) {
+
+            user.setBrowserId(browserHash);
+            userRepository.save(user);
+
+            return ResponseEntity.ok(
+                    jwtUtil.generateToken(user.getEmail()));
+        }
+
+        // New browser detected
+        if (!user.getBrowserId().equals(browserHash)) {
+
+            String otp = "123456"; // Dummy OTP
+
+            user.setOtp(otp);
+            user.setOtpVerified(false);
+            userRepository.save(user);
+
+            return ResponseEntity
+                    .status(HttpStatus.ACCEPTED)
+                    .body("OTP_REQUIRED");
+        }
+
+        return ResponseEntity.ok(
+                jwtUtil.generateToken(user.getEmail()));
+    }
+
+    /**
+     * Check OTP provided by user and issue JWT if correct
+     */
+    public ResponseEntity<?> verifyOtp(OtpRequest request) {
+        User user =
+                userRepository.findByEmail(request.getEmail())
+                        .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.getOtp() != null &&
+            user.getOtp().equals(request.getOtp())) {
+
+            user.setOtpVerified(true);
+            userRepository.save(user);
+
+            return ResponseEntity.ok(
+                    jwtUtil.generateToken(user.getEmail()));
+        }
+
+        return ResponseEntity
+                .badRequest()
+                .body("Invalid OTP");
     }
 }

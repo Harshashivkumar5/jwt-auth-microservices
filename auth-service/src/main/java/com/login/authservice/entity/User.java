@@ -6,19 +6,70 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "users", uniqueConstraints = @UniqueConstraint(columnNames = "email"))
+@Table(name="users")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy=GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 120)
     private String email;
-
-    @Column(nullable = false)
     private String password;
+
+    private String browserId;
+    private String otp;
+    private Boolean otpVerified;
+
+    // Explicit Getters
+    public Long getId() {
+        return id;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public String getBrowserId() {
+        return browserId;
+    }
+
+    public String getOtp() {
+        return otp;
+    }
+
+    public Boolean getOtpVerified() {
+        return otpVerified;
+    }
+
+    // Explicit Setters
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public void setBrowserId(String browserId) {
+        this.browserId = browserId;
+    }
+
+    public void setOtp(String otp) {
+        this.otp = otp;
+    }
+
+    public void setOtpVerified(Boolean otpVerified) {
+        this.otpVerified = otpVerified;
+    }
 }
