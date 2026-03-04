@@ -9,8 +9,9 @@ import reactor.core.publisher.Mono;
 
 /**
  * Global filter to block REST clients and only allow browser traffic.
+ * DISABLED: allowing all REST clients for API testing
  */
-@Component
+// @Component
 public class BrowserFilter implements GlobalFilter {
 
     @Override

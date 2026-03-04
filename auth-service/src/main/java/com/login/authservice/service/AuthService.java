@@ -74,6 +74,8 @@ public class AuthService {
 
         // Save user
         try {
+            // Encode password before saving
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
             userRepository.save(user);
             response.put("success", true);
             response.put("message", "User Registered Successfully");
@@ -154,25 +156,36 @@ public class AuthService {
             throw new RuntimeException("Invalid Password");
         }
 
+        // Handle null userAgent
+        if (userAgent == null) {
+            userAgent = "unknown-client";
+        }
+
         String browserHash =
                 DigestUtils.md5DigestAsHex(
                         userAgent.getBytes());
 
         // First login
         if (user.getBrowserId() == null) {
-
             user.setBrowserId(browserHash);
             userRepository.save(user);
 
-            return ResponseEntity.ok(
-                    jwtUtil.generateToken(user.getEmail()));
+            try {
+                String token = jwtUtil.generateToken(user.getEmail());
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", true);
+                response.put("message", "Login successful");
+                response.put("token", token);
+                return ResponseEntity.ok(response);
+            } catch (Exception e) {
+                logger.error("Error generating token: {}", e.getMessage());
+                throw new RuntimeException("Token generation failed");
+            }
         }
 
         // New browser detected
         if (!user.getBrowserId().equals(browserHash)) {
-
             String otp = "123456"; // Dummy OTP
-
             user.setOtp(otp);
             user.setOtpVerified(false);
             userRepository.save(user);
@@ -182,8 +195,18 @@ public class AuthService {
                     .body("OTP_REQUIRED");
         }
 
-        return ResponseEntity.ok(
-                jwtUtil.generateToken(user.getEmail()));
+        // Same browser, existing user
+        try {
+            String token = jwtUtil.generateToken(user.getEmail());
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Login successful");
+            response.put("token", token);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error generating token: {}", e.getMessage());
+            throw new RuntimeException("Token generation failed");
+        }
     }
 
     /**
