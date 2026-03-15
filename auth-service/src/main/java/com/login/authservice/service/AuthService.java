@@ -4,6 +4,7 @@ import com.login.authservice.entity.User;
 import com.login.authservice.repository.UserRepository;
 import com.login.authservice.security.JwtUtil;
 import com.login.authservice.controller.AuthRequest;
+import com.login.authservice.controller.RegisterRequest;
 import com.login.authservice.dto.OtpRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -38,44 +39,45 @@ public class AuthService {
         "Password must be at least 8 characters with 1 uppercase, 1 lowercase, 1 number, and 1 special character";
 
     /**
-     * Register a new user
+     * Register a new user from RegisterRequest (email + password).
      */
-    public Map<String, Object> register(User user) {
+    public Map<String, Object> register(RegisterRequest req) {
         Map<String, Object> response = new HashMap<>();
 
         // Validate email
-        if (user.getEmail() == null || user.getEmail().trim().isEmpty()) {
+        if (req.getEmail() == null || req.getEmail().trim().isEmpty()) {
             response.put("success", false);
             response.put("message", "Email is required");
             return response;
         }
 
         // Check if email already exists
-        if (userRepository.existsByEmail(user.getEmail())) {
+        if (userRepository.existsByEmail(req.getEmail())) {
             response.put("success", false);
             response.put("message", "Email already exists");
-            logger.warn("Attempted registration with duplicate email: {}", user.getEmail());
+            logger.warn("Attempted registration with duplicate email: {}", req.getEmail());
             return response;
         }
 
         // Validate password
-        if (user.getPassword() == null || user.getPassword().trim().isEmpty()) {
+        if (req.getPassword() == null || req.getPassword().trim().isEmpty()) {
             response.put("success", false);
             response.put("message", "Password is required");
             return response;
         }
 
-        if (!user.getPassword().matches(PASSWORD_REGEX)) {
+        if (!req.getPassword().matches(PASSWORD_REGEX)) {
             response.put("success", false);
             response.put("message", PASSWORD_RULES);
-            logger.warn("Weak password attempt for email: {}", user.getEmail());
+            logger.warn("Weak password attempt for email: {}", req.getEmail());
             return response;
         }
 
-        // Save user
+        // Build user entity and save
         try {
-            // Encode password before saving
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
+            User user = new User();
+            user.setEmail(req.getEmail().trim());
+            user.setPassword(passwordEncoder.encode(req.getPassword()));
             userRepository.save(user);
             response.put("success", true);
             response.put("message", "User Registered Successfully");

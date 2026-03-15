@@ -2,18 +2,18 @@ server:
   port: 8082
 
 spring:
-  application:
-    name: api-gateway
   cloud:
     gateway:
       routes:
         - id: auth-service
-          uri: lb://AUTH-SERVICE
+          uri: lb://auth-service  # Use service discovery
           predicates:
             - Path=/api/auth/**
 
 eureka:
   client:
-    enabled: false
-    register-with-eureka: false
-    fetch-registry: false
+    enabled: true
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka

@@ -1,9 +1,9 @@
 package com.login.authservice.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
-import com.login.authservice.entity.User;
 import com.login.authservice.service.AuthService;
 import com.login.authservice.controller.AuthRequest;
+import com.login.authservice.controller.RegisterRequest;
 import com.login.authservice.dto.OtpRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -18,10 +18,10 @@ public class AuthController {
     @Autowired
     private AuthService authService;
 
-    // Register API
+    // Register API — accepts only email + password (RegisterRequest DTO)
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody User user) {
-        return ResponseEntity.ok(authService.register(user));
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+        return ResponseEntity.ok(authService.register(request));
     }
 
     // Login API
